@@ -1,23 +1,12 @@
-"""Video embedder: sample frames → CLIP image embeddings → mean-pooled vector.
-
-Pipeline:
-  1. Download video from GCS (or HTTP / local path)
-  2. Sample N evenly-spaced frames with OpenCV
-  3. Encode each frame with CLIP image encoder
-  4. Mean-pool all frame embeddings → single (512,) vector
-  5. L2-normalise and return
-"""
-
 from __future__ import annotations
-
+from google.cloud import storage
 import logging
 import os
 import tempfile
 from pathlib import Path
-
 import numpy as np
 from PIL import Image
-
+import requests
 logger = logging.getLogger(__name__)
 
 try:
@@ -33,7 +22,6 @@ from .clip_embedder import embed_image_pil
 
 def _download_video(source: str) -> str:
     if source.startswith("gs://"):
-        from google.cloud import storage  # type: ignore
         bucket_name, blob_path = source[5:].split("/", 1)
         suffix = Path(blob_path).suffix or ".mp4"
 
@@ -45,7 +33,6 @@ def _download_video(source: str) -> str:
         return tmp_path
     
     elif source.startswith("http://") or source.startswith("https://"):
-        import requests
 
         suffix = Path(source.split("?")[0]).suffix or ".mp4"
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
